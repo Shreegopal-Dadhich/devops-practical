@@ -4,7 +4,7 @@ Takes the sample Express app in `app/` (unmodified) from source to a production
 deployment on AWS EKS: secure, autoscaling, cost-conscious, all infrastructure
 in Terraform.
 
-📹 **Walkthrough recording:** _<Google Drive link — add after upload>_
+📹 **Walkthrough recording:** [Watch on Google Drive](https://drive.google.com/file/d/1EoqdSvXt-Y6mJccoaS5L3EgCYjIA8qnJ/view?usp=sharing)
 
 ---
 
