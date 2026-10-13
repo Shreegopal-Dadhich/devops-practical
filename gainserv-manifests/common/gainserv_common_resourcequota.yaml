@@ -1,0 +1,17 @@
+---
+# Namespace Resource Quota
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: gainserv-quota
+  namespace: gainserv
+spec:
+  hard:
+    pods: "20"
+    requests.cpu: "8"
+    limits.cpu: "16"
+    requests.memory: 2560Mi
+    limits.memory: 2560Mi
+    # Public entry only through the reviewed ALB Ingress
+    services.loadbalancers: "0"
+    services.nodeports: "0"

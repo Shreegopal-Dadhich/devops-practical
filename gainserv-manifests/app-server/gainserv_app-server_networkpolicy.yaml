@@ -1,0 +1,32 @@
+---
+# App Server Network Policy (on top of gainserv-default-deny + gainserv-allow-dns)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gainserv-app-server-prod-netpol
+  namespace: gainserv
+  labels:
+    app: gainserv-app-server-prod
+spec:
+  podSelector:
+    matchLabels:
+      app: gainserv-app-server-prod
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - ipBlock:
+        cidr: ${ALB_SOURCE_CIDR}
+    ports:
+    - port: 3000
+      protocol: TCP
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - ${VPC_CIDR}
+    ports:
+    - port: 443
+      protocol: TCP

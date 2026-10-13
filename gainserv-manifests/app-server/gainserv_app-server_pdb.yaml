@@ -1,0 +1,14 @@
+---
+# Pod Disruption Budget for App Server
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: gainserv-app-server-prod-pdb
+  namespace: gainserv
+  labels:
+    app: gainserv-app-server-prod
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: gainserv-app-server-prod

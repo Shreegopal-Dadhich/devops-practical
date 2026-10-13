@@ -1,0 +1,32 @@
+---
+# App Server Ingress (internet-facing ALB via AWS Load Balancer Controller)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gainserv-app-server-prod-ingress
+  namespace: gainserv
+  labels:
+    app: gainserv-app-server-prod
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "10"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=20
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=4
+    alb.ingress.kubernetes.io/tags: project=gainserv,Environment=prod,ManagedBy=aws-load-balancer-controller
+spec:
+  ingressClassName: alb
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gainserv-app-server-prod-svc
+            port:
+              number: 3000

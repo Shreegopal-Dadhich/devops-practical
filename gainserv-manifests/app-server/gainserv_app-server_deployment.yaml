@@ -1,0 +1,156 @@
+---
+# App Server Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gainserv-app-server-prod
+  namespace: gainserv
+  labels:
+    app: gainserv-app-server-prod
+    app.kubernetes.io/name: app-server
+    app.kubernetes.io/component: backend
+spec:
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: gainserv-app-server-prod
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 25%
+  template:
+    metadata:
+      labels:
+        app: gainserv-app-server-prod
+    spec:
+      serviceAccountName: gainserv-app-server-prod-sa
+      automountServiceAccountToken: false
+
+      terminationGracePeriodSeconds: 40
+
+      # Run as non-root "node" user (uid 1000) from the image
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+      - name: app-server
+        # Image from ECR (set by gainserv_deploy.sh)
+        image: ${IMAGE}
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+
+        # Load environment variables from ConfigMap and Secret
+        envFrom:
+          - configMapRef:
+              name: gainserv-app-server-prod-env-config
+          - secretRef:
+              name: gainserv-app-server-prod-env-secret
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+
+        volumeMounts:
+          - name: tmp
+            mountPath: /tmp
+
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "500m"
+          limits:
+            memory: "128Mi"
+            cpu: "1"
+
+        # Startup probe - up to 30s for first boot before liveness counts
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 3000
+          periodSeconds: 2
+          failureThreshold: 15
+
+        # Readiness probe - take a busy pod out of rotation quickly
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 3000
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 2
+
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 3000
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+
+        lifecycle:
+          preStop:
+            sleep:
+              seconds: 25
+
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Mi
+
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: eks.amazonaws.com/capacityType
+                operator: In
+                values:
+                - SPOT
+
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: gainserv-app-server-prod
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: gainserv-app-server-prod
+
+---
+# App Server Service (ClusterIP - internal only, exposed through the ALB Ingress)
+apiVersion: v1
+kind: Service
+metadata:
+  name: gainserv-app-server-prod-svc
+  namespace: gainserv
+  labels:
+    app: gainserv-app-server-prod
+spec:
+  type: ClusterIP
+  selector:
+    app: gainserv-app-server-prod
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: http

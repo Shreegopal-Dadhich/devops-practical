@@ -1,0 +1,32 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*tfplan*
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+*.tfvars
+*.tfvars.json
+!gainserv-infra-prod/prod.tfvars
+
+# Secrets / local env — never committed
+.env
+.env.*
+*.pem
+*.key
+kubeconfig*
+
+# Node
+node_modules/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
